@@ -2,10 +2,18 @@
  * useDataLoader.ts – Zentrale Datenbereitstellung
  * =================================================
  *
- * ENTWURFSENTSCHEIDUNG:
- * Dieses Composable lädt alle Daten genau EINMAL beim ersten Aufruf
- * über die Nuxt-API-Routen (/api/hour, /api/day, /api/week, /api/year),
- * die aus der SQLite-Datenbank (data/energy.db) lesen.
+ * ENTWURFSENTSCHEIDUNG (Hybrid-Ansatz):
+ *
+ * Grundlast (App-Start):
+ *   Lädt die vier combined-*.json-Dateien aus public/data/.
+ *   Statische JSONs sind der schnellste Weg – kein API-Overhead,
+ *   keine Serialisierung, kein DB-Connection-Pool.
+ *
+ * Feinabfragen (optional, z. B. Brushing):
+ *   Die SQLite-API-Routen (/api/hour, /api/day, etc.) stehen bereit
+ *   für gefilterte Abfragen wie GET /api/hour?year=2024&month=5.
+ *   Dort lohnt sich SQLite, weil nur ein Teil der 89k Zeilen
+ *   übertragen wird – das ist schneller als clientseitiges Filtern.
  *
  * Die Daten werden in einem module-level shallowRef gecached. Dadurch
  * sind die computed-Refs reaktiv: Sobald der Fetch abgeschlossen ist,
@@ -57,12 +65,13 @@ export function useDataLoader() {
   if (!fetchStarted) {
     fetchStarted = true
 
-    // Lade alle Daten parallel über die API-Routen (SQLite)
+    // Grundlast: statische JSON-Dateien (schnellster Weg, kein API-Overhead)
+    // Gefilterte Abfragen nutzen später die SQLite-API-Routen (/api/*)
     Promise.all([
-      fetch('/api/hour').then<HourEntry[]>(r => r.json()),
-      fetch('/api/day').then<DayEntry[]>(r => r.json()),
-      fetch('/api/week').then<WeekEntry[]>(r => r.json()),
-      fetch('/api/year').then<YearEntry[]>(r => r.json()),
+      fetch('/data/combined-hour.json').then<HourEntry[]>(r => r.json()),
+      fetch('/data/combined-day.json').then<DayEntry[]>(r => r.json()),
+      fetch('/data/combined-week.json').then<WeekEntry[]>(r => r.json()),
+      fetch('/data/combined-year.json').then<YearEntry[]>(r => r.json()),
     ])
       .then(([hour, day, week, year]) => {
         cached.value = { hour, day, week, year }
