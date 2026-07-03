@@ -1,53 +1,59 @@
-# Nuxt Minimal Starter
+# Strompreis-Visualisierung
 
-Look at the [Nuxt documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
+Interaktive Scrollytelling-Anwendung zur Klimaneutralität des deutschen Stromsystems 2015–2025.
+
+**Technologie-Stack:** Nuxt 4, Vue 3, D3.js, SQLite (better-sqlite3)
 
 ## Setup
 
-Make sure to install dependencies:
-
 ```bash
-# npm
-npm install
-
-# pnpm
-pnpm install
-
-# yarn
-yarn install
-
-# bun
+# Dependencies installieren
 bun install
+
+# JSON-Daten in SQLite-Datenbank importieren (einmalig)
+node scripts/import-to-sqlite.js
 ```
 
-## Development Server
+Die Datenbank wird unter `data/energy.db` angelegt und über Nuxt-Server-Routen bereitgestellt (`/api/hour`, `/api/day`, `/api/week`, `/api/year`).
 
-Start the development server on `http://localhost:3000`:
+## Entwicklung
 
 ```bash
-# npm
-npm run dev
-
-# pnpm
-pnpm dev
-
-# yarn
-yarn dev
-
-# bun
-bun run dev
+bun run dev     # Dev-Server auf http://localhost:3000
 ```
 
-## Production
+## Datenbank
 
-Build the application for production:
+| Tabelle | Zeilen | Inhalt | API-Route |
+|---------|--------|--------|-----------|
+| `hour`  | ~89.000 | Stündliche Stromerzeugung, Preise, CO₂ | `GET /api/hour` |
+| `day`   | ~3.800  | Tagesaggregation | `GET /api/day` |
+| `week`  | ~550    | Wochenaggregation | `GET /api/week` |
+| `year`  | 11      | Jahresaggregation | `GET /api/year` |
+
+**Indizes:** `timestamp`, `date`, `year` auf allen Tabellen.
+
+**Optionale Filter:** `?year=2024` oder `?year=2024&month=5` (nur hour).
+
+### Migration von JSON zu SQLite
+
+Die Original-JSON-Daten liegen unverändert in `public/data/`. Das Skript `scripts/import-to-sqlite.js` importiert sie einmalig in SQLite. Die API-Routen in `server/api/` lesen aus der Datenbank und geben identische Datenstrukturen zurück wie zuvor die JSON-Dateien.
 
 ```bash
-# npm
-npm run build
+node scripts/import-to-sqlite.js
+```
 
-# pnpm
-pnpm build
+## Datenquellen
+
+- **SMARD** (Bundesnetzagentur) – Stromerzeugung und -last
+- **ENTSO-E** – Day-Ahead-Börsenstrompreise
+- **Umweltbundesamt** – CO₂-Emissionsfaktoren
+
+## Produktion
+
+```bash
+bun run build
+bun run preview
 
 # yarn
 yarn build

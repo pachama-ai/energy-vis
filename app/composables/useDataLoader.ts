@@ -3,7 +3,10 @@
  * =================================================
  *
  * ENTWURFSENTSCHEIDUNG:
- * Dieses Composable lädt alle JSON-Dateien genau EINMAL beim ersten Aufruf.
+ * Dieses Composable lädt alle Daten genau EINMAL beim ersten Aufruf
+ * über die Nuxt-API-Routen (/api/hour, /api/day, /api/week, /api/year),
+ * die aus der SQLite-Datenbank (data/energy.db) lesen.
+ *
  * Die Daten werden in einem module-level shallowRef gecached. Dadurch
  * sind die computed-Refs reaktiv: Sobald der Fetch abgeschlossen ist,
  * aktualisieren sich hourData, dayData etc. automatisch.
@@ -38,8 +41,9 @@ const cached = shallowRef<{
 let fetchStarted = false
 
 /**
- * Lädt alle JSON-Dateien asynchron und gibt sie als ComputedRefs zurück.
- * Der Cache (shallowRef) stellt sicher, dass die Daten nur einmal geladen werden.
+ * Lädt alle Daten über die Nuxt-API-Routen (SQLite-DB) und gibt sie
+ * als ComputedRefs zurück. Der shallowRef-Cache stellt sicher, dass
+ * die Daten nur einmal geladen werden.
  */
 export function useDataLoader() {
   const loading = ref(true)
@@ -53,12 +57,12 @@ export function useDataLoader() {
   if (!fetchStarted) {
     fetchStarted = true
 
-    // Lade alle JSONs parallel
+    // Lade alle Daten parallel über die API-Routen (SQLite)
     Promise.all([
-      fetch('/data/combined-hour.json').then<HourEntry[]>(r => r.json()),
-      fetch('/data/combined-day.json').then<DayEntry[]>(r => r.json()),
-      fetch('/data/combined-week.json').then<WeekEntry[]>(r => r.json()),
-      fetch('/data/combined-year.json').then<YearEntry[]>(r => r.json()),
+      fetch('/api/hour').then<HourEntry[]>(r => r.json()),
+      fetch('/api/day').then<DayEntry[]>(r => r.json()),
+      fetch('/api/week').then<WeekEntry[]>(r => r.json()),
+      fetch('/api/year').then<YearEntry[]>(r => r.json()),
     ])
       .then(([hour, day, week, year]) => {
         cached.value = { hour, day, week, year }
